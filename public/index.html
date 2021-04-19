@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>firebase-simple-auth-by-link</title>
+
+  <!-- update the version number as needed -->
+  <script defer src="/__/firebase/8.4.1/firebase-app.js"></script>
+  <!-- include only the Firebase features as you need -->
+  <script defer src="/__/firebase/8.4.1/firebase-auth.js"></script>
+  <!-- initialize the SDK after all desired features are loaded -->
+  <script defer src="/__/firebase/init.js"></script>
+  <link link rel="stylesheet" media="screen"
+    href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css">
+  <style>
+    html,
+    body {
+      height: 100%;
+    }
+
+    body {
+      display: -ms-flexbox;
+      display: flex;
+      -ms-flex-align: center;
+      align-items: center;
+      padding-top: 40px;
+      padding-bottom: 40px;
+      background-color: #f5f5f5;
+    }
+
+    .form-signin {
+      width: 100%;
+      max-width: 330px;
+      padding: 15px;
+      margin: auto;
+    }
+
+    .form-signin .checkbox {
+      font-weight: 400;
+    }
+
+    .form-signin .form-control {
+      position: relative;
+      box-sizing: border-box;
+      height: auto;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    .form-signin .form-control:focus {
+      z-index: 2;
+    }
+
+    .form-signin input[type="email"] {
+      margin-bottom: -1px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .form-signin input[type="password"] {
+      margin-bottom: 10px;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="text-center w-100">
+    <form class="form-signin" data-frm="signin">
+      <img class="mb-4" src="https://via.placeholder.com/128x128" alt="" width="72" height="72">
+      <h1 class="h3 mb-3 font-weight-normal">Sign in with email address</h1>
+      <div class="field-group mb-4">
+        <label for="inputEmail" class="sr-only">Email address</label>
+        <input type="email" id="inputEmail" class="form-control" placeholder="Email address" required autofocus />
+      </div>
+      <button class="btn btn-lg btn-primary btn-block" type="submit">Signin</button>
+    </form>
+  </div>
+  <script>
+    const formControl = document.querySelector('form[data-frm="signin"]');
+    if (formControl) {
+      formControl.addEventListener('submit', function (evt) {
+        evt.preventDefault();
+        const inputEmail = formControl.querySelector('#inputEmail');
+        if (inputEmail) {
+          loginFormSubmit(inputEmail.value);
+        }
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          // User is signed in.
+        } else {
+          // No user is signed in.
+          if (firebase.auth().isSignInWithEmailLink(window.location.href)) {
+            var email = window.localStorage.getItem('emailForSignIn');
+            if (!email) {
+              // User opened the link on a different device. To prevent session fixation
+              // attacks, ask the user to provide the associated email again. For example:
+              email = window.prompt('Please provide your email for confirmation');
+            }
+            firebase.auth().signInWithEmailLink(email, window.location.href)
+              .then((result) => {
+                // Clear email from storage.
+                window.localStorage.removeItem('emailForSignIn');
+                // You can access the new user via result.user
+                // Additional user info profile not available via:
+                // result.additionalUserInfo.profile == null
+                // You can check if the user is new or existing:
+                // result.additionalUserInfo.isNewUser
+              })
+              .catch((error) => {
+                // Some error occurred, you can inspect the code: error.code
+                // Common errors could be invalid email and invalid or expired OTPs.
+              });
+          }
+        }
+      });
+    });
+
+    const loginFormSubmit = function (email) {
+      var actionCodeSettings = {
+        // URL you want to redirect back to. The domain (www.example.com) for this
+        // URL must be in the authorized domains list in the Firebase Console.
+        url: document.location.origin,
+        // This must be true.
+        handleCodeInApp: true
+      };
+      firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings)
+        .then(() => {
+          // The link was successfully sent. Inform the user.
+          // Save the email locally so you don't need to ask the user for it again
+          // if they open the link on the same device.
+          window.localStorage.setItem('emailForSignIn', email);
+          // ...
+        })
+        .catch((error) => {
+          var errorCode = error.code;
+          var errorMessage = error.message;
+          // ...
+        });
+    };
+  </script>
+</body>
+
+</html>
